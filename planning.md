@@ -15,9 +15,6 @@ I focused on housing experiences in Knight Circle, one of the main student housi
 
 ## Documents
 
-<!-- List your specific sources: URLs, subreddit names, forum threads, or file descriptions.
-     Aim for at least 10 sources that together cover different subtopics or perspectives within your domain. -->
-
 | # | Source | Description | URL or location |
 |---|--------|-------------|-----------------|
 | 1 | knights_circle_general.md | 2 comprehensive reviews covering broken amenities, mold, maintenance access issues, roaches | Compiled from r/ucf threads (Nov 2023) |
