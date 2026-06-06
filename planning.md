@@ -20,103 +20,111 @@ I focused on housing experiences in Knight Circle, one of the main student housi
 
 | # | Source | Description | URL or location |
 |---|--------|-------------|-----------------|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6 | | | |
-| 7 | | | |
-| 8 | | | |
-| 9 | | | |
-| 10 | | | |
+| 1 | knights_circle_general.md | 2 comprehensive reviews covering broken amenities, mold, maintenance access issues, roaches | Compiled from r/ucf threads (Nov 2023) |
+| 2 | knights_circle_maintenance.md | 5 reviews focused on maintenance responsiveness, mold, water intrusion, WiFi reliability, pest control | Compiled from r/ucf threads (Jun–Aug 2022) |
+| 3 | knights_circle_phases.md | 5 reviews comparing Phase 1, 2, and 3 with phase-specific details (location, shuttle availability, noise, safety) | Compiled from r/ucf threads (Jun–Aug 2022) |
+| 4 | knights_circle_towing.md | 2 reviews documenting towing policies, visitor parking rules, predatory practices, costs | Compiled from r/ucf threads (Dec 2023) |
 
 ---
 
 ## Chunking Strategy
 
-<!-- How will you split documents into chunks?
-     State your chunk size (in tokens or characters), overlap size, and explain why those
-     numbers fit the structure of your documents.
-     A review-heavy corpus warrants different chunking than a long FAQ. -->
+**Chunk size:** 200–600 characters per chunk (approximately 30–100 tokens)
 
-**Chunk size:**
-
-**Overlap:**
+**Overlap:** None (0 characters)
 
 **Reasoning:**
+
+My corpus is review-heavy, not long technical documents, which drives these choices:
+
+- Each review is self-contained with metadata (phase, date, specific complaints). Unlike a long FAQ where key facts span paragraph boundaries, reviews don't need overlap for coherence.
+- Short reviews (~200 words) fit in one chunk; longer reviews (500–800 words) are split at natural paragraph breaks. This preserves semantic meaning, when a review says "Phase 1 has water intrusion and mold," both facts stay together in one chunk.
+- **How I know if it's right:** 
+  - Too small (e.g., 100 chars): Chunks would split mid-sentence ("roaches in my bath[tub faucet]"), making context retrieval fail.
+  - Too large (e.g., 1000+ chars): Chunks mix multiple unrelated complaints (towing + maintenance + WiFi), diluting signal for specific queries.
 
 ---
 
 ## Retrieval Approach
 
-<!-- Which embedding model are you using (e.g., all-MiniLM-L6-v2 via sentence-transformers)?
-     How many chunks will you retrieve per query (top-k)?
-     If you were deploying this for real users and cost wasn't a constraint, what tradeoffs
-     would you weigh in choosing a different embedding model — context length, multilingual
-     support, accuracy on domain-specific text, latency? -->
+**Embedding model:** `sentence-transformers/all-MiniLM-L6-v2` (384-dim, 22M params)
 
-**Embedding model:**
+**Top-k:** 5–8 chunks
 
-**Top-k:**
+**Why this model:** all-MiniLM-L6-v2 is optimized for semantic search on short, opinion-based text. Student reviews use varying vocabulary for the same problem ("roaches," "bugs," "infestation"), and MiniLM captures this synonymy well. It's also fast and lightweight.
 
-**Production tradeoff reflection:**
+**Why top-k = 5–8:** My corpus has ~10 total reviews. Retrieving 5–8 chunks ensures the LLM sees multiple perspectives (e.g., both positive and critical Phase 3 reviews) without redundant duplication. Top-k=3 risks missing phase-specific nuance; top-k=15 wastes tokens on repetitive content.
+
+**Production tradeoff reflection (cost unconstrained):**
+If cost and latency weren't constraints, I would switch to:
+- **Model:** OpenAI's `text-embedding-3-large` (3072-dim) or Cohere's `embed-english-v3.0` for superior domain accuracy and multilingual support (if expanding to international student perspectives)
+- **Tradeoff:** 3–5× higher inference cost, 10–50ms latency per query, but better handling of slang, phase abbreviations ("KC," "P1," "P3"), and context length (16K vs. 128 tokens)
+- **Top-k adjustment:** With richer embeddings, might reduce to top-k=3–5 since each chunk would be more semantically precise
 
 ---
 
 ## Evaluation Plan
 
-<!-- List your 5 test questions with their expected correct answers.
-     Questions should be specific enough that you can judge whether the system's response
-     is right or wrong. "What are good dining halls?" is too vague.
-     "What do students say about wait times at [dining hall name] during lunch?" is testable. -->
-
 | # | Question | Expected answer |
-|---|----------|-----------------|
-| 1 | | |
-| 2 | | |
-| 3 | | |
-| 4 | | |
-| 5 | | |
+|---|----------|-----------------||
+| 1 | What maintenance issues are reported in Phase 1 of Knights Circle? | Water intrusion (toilet overflows, pipes), non-stop mold problems, WiFi unreliability, water shutoffs, and safety/lighting concerns in parking areas. |
+| 2 | Which phases of Knights Circle are described as having reliable shuttle service? | Phase 2 and Phase 3; Phase 2 noted as first stop (generally not full); Phase 3 has frequent shuttles but they're often full during peak times. |
+| 3 | What should a student know about visitor parking and towing costs at Knights Circle? | Towing costs $130–150 (cash-only, amount increases the longer car is parked); towing company is in Bithlo; students must know visitor parking zones to avoid being towed; office provides visitor parking maps. |
+| 4 | What are the most common complaints about general living conditions at Knights Circle across all phases? | Mold, roaches, broken amenities (fire pit, movie room), maintenance staff entering without notice, kitchen size/broken dishwashers/ovens, WiFi issues. |
+| 5 | How do residents compare Phase 2 and Phase 3 in terms of noise, location, and overall quietness? | Phase 2 is quieter and furthest from Alafaya Trail (20-min walk to campus); Phase 3 is closer to Alafaya but experiences more traffic noise depending on building location; Phase 2 is better for quiet living. |
 
 ---
 
 ## Anticipated Challenges
 
-<!-- What could go wrong? Name at least two specific risks with reasoning.
-     Consider: noisy or inconsistent documents, missing source attribution, off-topic
-     retrieval, chunks that split key information across boundaries. -->
+1. **Missing phase information reduces retrieval precision:** Some reviews don't specify which phase they lived in (labeled "Phase: Unknown"). When a user queries "What's Phase 1 like?", the system might retrieve irrelevant general complaints from unknown-phase reviews, polluting results. *Mitigation:* Add metadata tags to chunks; filter by phase in post-retrieval ranking; fall back to showing both phase-specific and general complaints with clear attribution.
 
-1.
+2. **Contradictory opinions create ambiguity:** Phase 3 is described as "the best phase" by one resident and "noisy" with "full shuttles" by another. The LLM must handle this nuance without confusing users. If retrieval returns only one perspective, the answer is biased. *Mitigation:* Ensure top-k=5–8 retrieves multiple viewpoints; instruct LLM to present trade-offs ("Phase 3 has good shuttle frequency but can be loud").
 
-2.
+3. **Metadata sparsity (date/phase) causes off-topic retrieval:** A review mentioning "roaches" without phase info might be retrieved for a Phase 1 query even if the reviewer lived in Phase 2. The vector embedding doesn't guarantee phase accuracy. *Mitigation:* Chunk with metadata prefix ("[Phase 1, June 2022] roaches..."); use hybrid search (BM25 + semantic) to weight phase keywords heavily.
 
 ---
 
 ## Architecture
 
-<!-- Draw a diagram of your pipeline showing the five stages:
-     Document Ingestion → Chunking → Embedding + Vector Store → Retrieval → Generation
-     Label each stage with the tool or library you're using.
-     You can use ASCII art, a Mermaid diagram, or embed a sketch as an image.
-     You'll use this diagram as context when prompting AI tools to implement each stage. -->
+```mermaid
+flowchart LR
+    A["Document Ingestion<br/>(Markdown files)"] --> B[" Chunking<br/>(Langchain TextSplitter<br/>200-600 chars, no overlap)"]
+    B --> C["Embedding<br/>(sentence-transformers<br/>all-MiniLM-L6-v2)"]
+    C --> D["Vector Store<br/>(ChromaDB)"]
+    E["User Query"] --> F["Retrieval<br/>(Semantic search<br/>top-k=5-8)"]
+    D --> F
+    F --> G["Generation<br/>(LLM: Claude/GPT<br/>+ retrieved chunks)"]
+    G --> H["Final Answer"]
+```
+
+**Pipeline Breakdown:**
+1. **Ingestion:** Load 4 markdown files (knights_circle_general.md, maintenance.md, phases.md, towing.md)
+2. **Chunking:** Split by review boundaries (200–600 chars); preserve metadata (phase, date)
+3. **Embedding:** Convert text to 384-dim vectors using all-MiniLM-L6-v2
+4. **Vector Store:** Index chunks in ChromaDB for fast similarity search
+5. **Retrieval:** On user query, embed query, find top-5 to 8 semantically similar chunks
+6. **Generation:** Pass retrieved chunks to LLM with prompt; generate answer with citations
+7. **Output:** User sees answer + chunk sources ("From Phase 1 review, June 2022")
 
 ---
 
 ## AI Tool Plan
 
-<!-- For each part of the pipeline below, describe:
-     - Which AI tool you plan to use (Claude, Copilot, ChatGPT, etc.)
-     - What you'll give it as input (which sections of this planning.md, which requirements)
-     - What you expect it to produce
-     - How you'll verify the output matches your spec
-
-     "I'll use AI to help me code" is not a plan.
-     "I'll give Claude my Chunking Strategy section and ask it to implement chunk_text()
-     with my specified chunk size and overlap" is a plan. -->
-
 **Milestone 3 — Ingestion and chunking:**
+- **Tool:** Copilot for code generation
+- **Input:** This planning.md (Chunking Strategy + Architecture sections), code template for document loader
+- **Ask:** "Implement `load_and_chunk_documents()` that reads markdown files from `data/` folder, chunks each review to 200–600 chars at paragraph boundaries, and preserves metadata (phase, date, source). Return list of (text, metadata) tuples."
+- **Verification:** Run on test files; visually inspect 3–5 chunks to confirm: (a) no mid-sentence splits, (b) metadata preserved, (c) chunk sizes in range
 
 **Milestone 4 — Embedding and retrieval:**
+- **Tool:** Claude for implementation
+- **Input:** This planning.md (Retrieval Approach + Evaluation Plan sections), code template for ChromaDB setup
+- **Ask:** "Implement `embed_and_store()` using sentence-transformers all-MiniLM-L6-v2 to embed chunks and store in ChromaDB. Then implement `retrieve_top_k(query, k=5)` to find semantically similar chunks. Return chunks + similarity scores."
+- **Verification:** Run against Evaluation Plan questions; manually check if top-5 results for question #1 include Phase 1 water/mold complaints (from expected answer)
 
 **Milestone 5 — Generation and interface:**
+- **Tool:** Claude + LLM API (via Groq) for generation
+- **Input:** Evaluation Plan questions, retrieval output from Milestone 4, prompt engineering guidelines
+- **Ask:** "Given retrieved chunks and a user query, generate a coherent answer that (a) answers the query directly, (b) cites specific phases/dates, (c) handles contradictory opinions by presenting trade-offs. Test on all 5 Evaluation Plan questions."
+- **Verification:** Compare model answers to Expected Answers in Evaluation Plan; check for (a) factual accuracy, (b) proper citations, (c) phase-specific nuance
