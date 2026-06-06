@@ -9,7 +9,7 @@
 
 ## Domain
 
-<!-- What domain did you choose? Why is this knowledge valuable and hard to find through official channels? -->
+I focused on housing experiences in Knight Circle, one of the main student housing options for UCF. I chose this for a few reasons; namly because it has multiple phases, some older than others; a general "it's bad" review with no specifics on the phase is difficult to reason with. Secondly, many problems are neverending, so a lack of new reviews or discussion on a topic doesn't mean the problem solved, it's just not spoken of any more (the way things are). Also unless you know someone directly to ask detailed questions to, most reviews on Reddit were pretty high-level, and wouldn't be helpful to someone as a freshman, looking for their first dorm.
 
 ---
 
