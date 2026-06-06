@@ -53,6 +53,8 @@ this is fine, as it preserves the full context.
 2. My script yielded 14 total chunks. The project guide mentions a guardrail: “If you have fewer than 50 chunks... your chunks may be too large.”
 
 However since I have highly targeted, curated text documents rather than other alternatives, 14 high-signal chunks are perfectly fine to build and test your pipeline code. I just need to be mindful that when I query the system with a top_k=5, I'll be pulling in nearly a third of the entire database for a single answer.
+
+Failure Case: The system failed to accurately retrieve Phase 1 context for Test Query 1, instead pulling Phase 3 rants with a weak distance score of 0.61. This occurred because the embedding model prioritized the heavy semantic weights of 'maintenance issues' over the specific token 'Phase 1', especially given that Phase 1 text was highly sparse in our 14-chunk training corpus.
 ---
 
 ## Retrieval Approach
