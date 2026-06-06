@@ -43,6 +43,16 @@ My corpus is review-heavy, not long technical documents, which drives these choi
   - Too small (e.g., 100 chars): Chunks would split mid-sentence ("roaches in my bath[tub faucet]"), making context retrieval fail.
   - Too large (e.g., 1000+ chars): Chunks mix multiple unrelated complaints (towing + maintenance + WiFi), diluting signal for specific queries.
 
+After creating the ingestion.py, I ran into two observations:
+1. Chunk 1 had  918 characters, even though max_size was capped at 600.
+
+In my chunking logic, I split strictly by paragraphs (\n\n), however chunk 1 is a single, massive block of text where the student didn't press enter once while ranting about maintenance. Because there was no paragraph break, the script had to ingest the whole thing to avoid truncating it mid-sentence.
+
+this is fine, as it preserves the full context.
+
+2. My script yielded 14 total chunks. The project guide mentions a guardrail: “If you have fewer than 50 chunks... your chunks may be too large.”
+
+However since I have highly targeted, curated text documents rather than other alternatives, 14 high-signal chunks are perfectly fine to build and test your pipeline code. I just need to be mindful that when I query the system with a top_k=5, I'll be pulling in nearly a third of the entire database for a single answer.
 ---
 
 ## Retrieval Approach
